@@ -5,9 +5,9 @@
 #
 # Downloads the latest prebuilt distribution package (headless daemon bundle +
 # renderer static assets — architecture-agnostic, no bundled Node runtime),
-# extracts it, installs its production dependencies with the user's own
-# bun/npm, and starts the daemon via the package's own setup.sh (which opens
-# the browser at http://127.0.0.1:3456).
+# extracts it, registers the `crosspilot` launcher command, installs its
+# production dependencies with the user's own bun/npm, and starts the daemon via
+# the package's own setup.sh (which opens the browser at http://127.0.0.1:3456).
 #
 # Prerequisite: Node.js 22+ and bun (or npm) must already be installed on
 # this machine — this installer does not manage the Node/bun environment
@@ -25,6 +25,51 @@ ASSET="crosspilot-dist.tar.gz"
 # setup-crosspilot.sh) so this installer never collides with / wipes a git
 # checkout the user made for development.
 INSTALL_DIR="${CROSSPILOT_INSTALL_DIR:-$HOME/CrossPilot-app}"
+CONFIG_DIR="${CROSSPILOT_DATA_DIR:-$HOME/.crosspilot}"
+
+_register_launcher() {
+  local launcher="$INSTALL_DIR/crosspilot"
+  if [ ! -x "$launcher" ]; then
+    echo "⚠️  crosspilot launcher missing from package; skipping command registration." >&2
+    return 0
+  fi
+
+  local bin_dir=""
+  if [ -d /usr/local/bin ] && [ -w /usr/local/bin ]; then
+    bin_dir="/usr/local/bin"
+  else
+    bin_dir="$HOME/.local/bin"
+    mkdir -p "$bin_dir"
+  fi
+
+  local target="$bin_dir/crosspilot"
+  ln -sf "$launcher" "$target" 2>/dev/null || cp "$launcher" "$target"
+  chmod +x "$target"
+  echo "→ registered command: $target"
+
+  case ":$PATH:" in
+    *":$bin_dir:"*) ;;
+    *)
+      if [ "$bin_dir" = "$HOME/.local/bin" ]; then
+        local profile="$HOME/.profile"
+        case "${SHELL:-}" in
+          */zsh) profile="$HOME/.zshrc" ;;
+          */bash) profile="$HOME/.bashrc" ;;
+        esac
+        if ! grep -qs 'CrossPilot launcher' "$profile" 2>/dev/null; then
+          {
+            echo ''
+            echo '# CrossPilot launcher'
+            echo 'export PATH="$HOME/.local/bin:$PATH"'
+          } >> "$profile"
+        fi
+        echo "→ added $bin_dir to PATH in $profile (open a new terminal before running crosspilot directly)"
+      else
+        echo "⚠️  $bin_dir is not in PATH; add it before running crosspilot directly." >&2
+      fi
+      ;;
+  esac
+}
 
 if ! command -v node >/dev/null 2>&1; then
   echo "❌ 未找到 node。CrossPilot 需要先安装 Node.js 22+，安装完成后重新运行本脚本。" >&2
@@ -53,8 +98,12 @@ mkdir -p "$INSTALL_DIR"
 echo "→ installing to ${INSTALL_DIR}"
 tar -xzf "$TMP_DIR/$ASSET" -C "$INSTALL_DIR" --strip-components=1
 
+mkdir -p "$CONFIG_DIR"
+printf '%s\n' "$INSTALL_DIR" > "$CONFIG_DIR/install-dir"
+
 cd "$INSTALL_DIR"
-chmod +x setup.sh
+chmod +x setup.sh crosspilot 2>/dev/null || chmod +x setup.sh
+_register_launcher
 
 echo "→ starting CrossPilot…"
 exec ./setup.sh
