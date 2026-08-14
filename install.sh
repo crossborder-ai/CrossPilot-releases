@@ -5,13 +5,13 @@
 #
 # Downloads the latest prebuilt distribution package (headless daemon bundle +
 # renderer static assets — architecture-agnostic, no bundled Node runtime),
-# extracts it, registers the `crosspilot` launcher command, installs its
-# production dependencies with the user's own bun/npm, and starts the daemon via
-# the package's own setup.sh (which opens the browser at http://127.0.0.1:3456).
+# extracts it, registers the `crosspilot` launcher command, and starts the
+# daemon via the package's own setup.sh (which opens the browser at
+# http://127.0.0.1:3456). The package normally includes production
+# dependencies; setup.sh only needs bun/npm if it has to reinstall them locally.
 #
-# Prerequisite: Node.js 22+ and bun (or npm) must already be installed on
-# this machine — this installer does not manage the Node/bun environment
-# itself (see README).
+# Prerequisite: Node.js 22+ must already be installed on this machine — this
+# installer does not manage the Node environment itself (see README).
 #
 # This script is synced into the PUBLIC crossborder-ai/CrossPilot-releases
 # repo by CI (see .github/workflows/dist.yml "Publish to public releases
@@ -75,11 +75,6 @@ if ! command -v node >/dev/null 2>&1; then
   echo "❌ 未找到 node。CrossPilot 需要先安装 Node.js 22+，安装完成后重新运行本脚本。" >&2
   exit 1
 fi
-if ! command -v bun >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
-  echo "❌ 未找到 bun 或 npm。CrossPilot 需要其中一个来安装依赖，请先安装后重试。" >&2
-  exit 1
-fi
-
 URL="https://github.com/${PUBLIC_REPO}/releases/latest/download/${ASSET}"
 echo "→ CrossPilot installer"
 echo "→ downloading ${URL}"
