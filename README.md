@@ -6,8 +6,40 @@ CrossPilot 是一个跨境电商 AI 决策平台，提供库存分析、补货�
 
 ### 前提条件
 
-- **Node.js 22+** — [nodejs.org](https://nodejs.org/)
-- **bun**（推荐）或 **npm** — [bun.sh](https://bun.sh/)
+CrossPilot 需要本机已有 **Node.js 22+**。当前安装包已内置生产依赖，正常安装不需要现场安装 npm 依赖；但建议同时安装 **bun** 作为依赖 fallback 兜底。
+
+先检查本机是否已经满足：
+
+```bash
+node -v
+bun -v
+```
+
+如果 `node -v` 显示 `v22.x` 或更高，可以直接跳到下一节运行 CrossPilot 一键安装命令。
+
+macOS 已安装 Homebrew 时，直接运行：
+
+```bash
+brew install node@22 bun
+brew link --overwrite --force node@22
+node -v
+bun -v
+```
+
+如果没有 Homebrew，可以用 fnm 安装 Node 22，再安装 bun：
+
+```bash
+curl -fsSL https://fnm.vercel.app/install | bash
+source ~/.zshrc 2>/dev/null || source ~/.bashrc 2>/dev/null || true
+fnm install 22
+fnm use 22
+curl -fsSL https://bun.sh/install | bash
+source ~/.zshrc 2>/dev/null || source ~/.bashrc 2>/dev/null || true
+node -v
+bun -v
+```
+
+如果安装后当前终端仍提示 `node` 或 `bun` 找不到，关闭终端重新打开后再执行检查命令。
 
 ### 一键安装 / 更新到最新版
 
@@ -19,7 +51,7 @@ curl -fsSL https://raw.githubusercontent.com/crossborder-ai/CrossPilot-releases/
 
 安装脚本会自动：
 1. 下载最新构建包（默认装到 `~/CrossPilot-app`）
-2. 安装运行时依赖（国内网络下会自动探测并切换到 npmmirror.com 镜像加速，无需手动配置）
+2. 使用安装包内置的运行时依赖；仅在本机 Node 架构不兼容时才尝试本地修复/安装依赖（国内网络下会自动探测并切换到 npmmirror.com 镜像加速，无需手动配置）
 3. 注册全局命令 `crosspilot`（写入 `/usr/local/bin` 或 `~/.local/bin`）
 4. 启动 CrossPilot 守护进程并打开浏览器
 
