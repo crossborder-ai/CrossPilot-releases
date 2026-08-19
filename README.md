@@ -44,10 +44,10 @@ bun -v
 ### 一键安装 / 更新到最新版
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/crossborder-ai/CrossPilot-releases/main/install.sh | bash
+curl -fsSL https://download.crosspilot.ai/install.sh | bash
 ```
 
-首次安装和后续更新都使用同一条命令。脚本每次都会下载本仓库 latest release 里的最新 `crosspilot-dist.tar.gz`，替换本地应用文件，但不会删除本地数据。
+首次安装和后续更新都使用同一条命令。脚本每次都会从 CrossPilot 下载域名拉取最新 `crosspilot-dist.tar.gz`，替换本地应用文件，但不会删除本地数据。
 
 安装脚本会自动：
 1. 下载最新构建包（默认装到 `~/CrossPilot-app`）
