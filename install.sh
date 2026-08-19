@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # CrossPilot one-line remote installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/crossborder-ai/CrossPilot-releases/main/install.sh | bash
+#   curl -fsSL https://download.crosspilot.ai/install.sh | bash
 #
 # Downloads the latest prebuilt distribution package (headless daemon bundle +
 # renderer static assets — architecture-agnostic, no bundled Node runtime),
@@ -19,8 +19,8 @@
 # source lives here, in the private crossborder-ai/CrossPilot repo.
 set -euo pipefail
 
-PUBLIC_REPO="crossborder-ai/CrossPilot-releases"
 ASSET="crosspilot-dist.tar.gz"
+DOWNLOAD_BASE_URL="${CROSSPILOT_DOWNLOAD_BASE_URL:-https://download.crosspilot.ai}"
 # Distinct from the dev-flow clone default ($HOME/CrossPilot in
 # setup-crosspilot.sh) so this installer never collides with / wipes a git
 # checkout the user made for development.
@@ -75,7 +75,7 @@ if ! command -v node >/dev/null 2>&1; then
   echo "❌ 未找到 node。CrossPilot 需要先安装 Node.js 22+，安装完成后重新运行本脚本。" >&2
   exit 1
 fi
-URL="https://github.com/${PUBLIC_REPO}/releases/latest/download/${ASSET}"
+URL="${CROSSPILOT_DIST_URL:-${DOWNLOAD_BASE_URL%/}/${ASSET}}"
 echo "→ CrossPilot installer"
 echo "→ downloading ${URL}"
 
