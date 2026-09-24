@@ -77,12 +77,42 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 URL="${CROSSPILOT_DIST_URL:-${DOWNLOAD_BASE_URL%/}/${ASSET}}"
 echo "→ CrossPilot installer"
+# Progress is not decoration here: the package is ~226 MB, and a silent 226 MB download on a
+# slow link is indistinguishable from a hang — which is exactly how it was reported
+# (2026-09-24: "安装脚本要改，要显示安装进度"). curl's bar goes to stderr and keeps moving
+# even at a few KB/s, so "still working" is visible with no extra request: one download,
+# same as before, just not silent.
 echo "→ downloading ${URL}"
+echo "  (~226 MB — 下面的进度条会持续走动；慢链路上会花一些时间，但它在工作)"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-curl -fsSL "$URL" -o "$TMP_DIR/$ASSET"
+if curl -fL --progress-bar --retry 3 --retry-delay 2 -o "$TMP_DIR/$ASSET" "$URL"; then
+  :
+else
+  # A failure here used to surface as a bare curl error (or, under `curl | bash`, as the
+  # script simply stopping). Say what happened and what to do next — on a slow link the
+  # mid-transfer case is the common one, so offer the resumable manual path.
+  rc=$?
+  echo "" >&2
+  echo "❌ 下载失败或中断（curl 退出码 ${rc}）。" >&2
+  case "$rc" in
+    6) echo "   原因：域名解析失败（DNS 或网络问题）。" >&2 ;;
+    7) echo "   原因：连不上服务器（网络不通、代理或防火墙）。" >&2 ;;
+    18 | 55 | 56) echo "   原因：传输中途断开——大文件在慢链路上很常见，重跑或断点续传即可。" >&2 ;;
+    22) echo "   原因：服务器返回了错误状态（镜像可能正在更新，稍后重试）。" >&2 ;;
+    28) echo "   原因：超时。" >&2 ;;
+    35 | 60) echo "   原因：TLS 握手失败（证书问题或中间有代理拦截）。" >&2 ;;
+    *) echo "   原因：详见上面 curl 的输出。" >&2 ;;
+  esac
+  echo "   下一步（任选一条）：" >&2
+  echo "     ① 重跑同一条安装命令；" >&2
+  echo "     ② 在当前目录手动下载（可断点续传，中断后重跑同一条会接着下）：" >&2
+  echo "        curl -fL -C - -o ${ASSET} '${URL}'" >&2
+  echo "        shasum -a 256 ${ASSET}   # 与 '${URL}.sha256' 比对后再手动安装" >&2
+  exit 1
+fi
 
 # ─── integrity check ────────────────────────────────────────────────────────────
 # What this defends against: a truncated or CDN-mangled download. What it does NOT
