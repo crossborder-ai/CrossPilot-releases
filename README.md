@@ -1,4 +1,8 @@
-# CrossPilot
+<p align="center">
+  <img src="logo.png" alt="CrossPilot" height="120">
+</p>
+
+<h1 align="center">CrossPilot</h1>
 
 CrossPilot 是一个跨境电商 AI 决策平台，提供库存分析、补货建议等 agent 工作流能力。本仓库存放公开构建产物（安装包 + 安装脚本），源码仓库保持私有。
 
