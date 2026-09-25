@@ -88,7 +88,18 @@ echo "  (~226 MB — 下面的进度条会持续走动；慢链路上会花一�
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-if curl -fL --progress-bar --retry 3 --retry-delay 2 -o "$TMP_DIR/$ASSET" "$URL"; then
+# --speed-limit/--speed-time close the one gap the progress bar cannot cover: a connection
+# that stays open but delivers nothing. There the bar simply stops moving and the screen
+# looks dead — measured 2026-09-24 against the real mirror (30s, zero bytes, no error) and
+# reproduced locally with a throttled server (10 minutes without one character of output).
+# With these flags such a transfer aborts as curl exit 28 after 30s below 1 KB/s and lands in
+# the readable failure branch below. 30s, not 60s, because curl's --retry restarts an attempt
+# from zero (measured: -C - does not make its internal retries resume), so the honest budget
+# for "tell the user it is stuck" has to cover every attempt: 2 attempts x (30s + 2s delay)
+# = ~64s, inside the <=90s the task asks for. A window of 60s plus one retry measures ~124s,
+# which would miss that. No extra request; a link that is merely slow (measured: 8.7 KB/s,
+# well under 50 KB/s) never trips it, because 8.7 KB/s is not 1 KB/s.
+if curl -fL --progress-bar --retry 1 --retry-delay 2 --speed-limit 1024 --speed-time 30 -o "$TMP_DIR/$ASSET" "$URL"; then
   :
 else
   # A failure here used to surface as a bare curl error (or, under `curl | bash`, as the
@@ -102,7 +113,7 @@ else
     7) echo "   原因：连不上服务器（网络不通、代理或防火墙）。" >&2 ;;
     18 | 55 | 56) echo "   原因：传输中途断开——大文件在慢链路上很常见，重跑或断点续传即可。" >&2 ;;
     22) echo "   原因：服务器返回了错误状态（镜像可能正在更新，稍后重试）。" >&2 ;;
-    28) echo "   原因：超时。" >&2 ;;
+    28) echo "   原因：超时。上面若写着 'Operation too slow'，就是连接还开着但长时间没有数据（链路多半断了）；否则是网络太慢或连不上。" >&2 ;;
     35 | 60) echo "   原因：TLS 握手失败（证书问题或中间有代理拦截）。" >&2 ;;
     *) echo "   原因：详见上面 curl 的输出。" >&2 ;;
   esac
